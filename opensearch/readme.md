@@ -1,0 +1,43 @@
+Open-search logging things:
+
+Conflict key in index while  logging generates 400 - rejected by open-search. This error is usually thrown by fluent. There are different ways to solve this. Optimal way is to solve the conflict is that to not have multiple data type values for the same key. If one do not have choice to mention one data type , try using the dynamic template mapping. In dynamic template mapping try to map conflicting key to string. The dynamic template will effectively work on new index creation.
+
+Here is an example of dynamic template for an index in open-search.
+```
+PUT _index_template/fluentdlogstemplate
+{
+  "index_patterns": [
+    "fluentd-*",
+    "logstash-*"
+  ],
+  "template": {
+    "aliases": {
+      "production_logs": {}
+    },
+    "mappings": {
+      "properties": {
+        "upstream_response_time": {
+          "type": "double"
+        }
+      },
+      "dynamic_templates": [
+       {
+          "string": {
+          "match": "location",
+          "mapping": {
+             "type": "geo_point",
+             "ignore_malformed": true
+        }
+       }
+      }
+     ]
+    }
+  },
+  "priority": 1,
+  "version": 3,
+  "_meta": {
+    "description": "default logs template"
+  }
+}
+```
+ In the above example we are dynamically forcing location key value to geo_point  datatype [geo_point is use for maps while making dashboard in open-search ].
