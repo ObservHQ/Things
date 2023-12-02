@@ -1,0 +1,42 @@
+---
+import { getCollection } from "astro:content"
+import Link from "../components/Link.vue"
+import PostRow from "../components/PostRow.astro"
+import Base from "../layouts/Base.astro"
+import { sortPostsByDate } from "../lib/date"
+
+// const projects = await getProjects(6)
+const posts = sortPostsByDate(
+  await getCollection("blog", ({ data }) => data.isDraft !== true),
+).slice(0, 4)
+
+const title = "observhq • home";
+---
+
+<Base
+  {title}
+  description="Writings on programming and technology"
+>
+  <h1 slot="header-content" class="text-neutral-500">
+    ObservHQ
+  </h1>
+
+  <main class="prose">
+    <p>
+      Writings on programming and technology.
+    </p>
+
+   
+
+    <div class="mt-12"></div>
+    <h2>Blog</h2>
+
+    <div class="flex flex-col gap-4">
+      {posts.map(post => <PostRow {post} />)}
+
+      <span>
+        <Link href="/blog">All posts →</Link>
+      </span>
+    </div>
+  </main>
+</Base>
