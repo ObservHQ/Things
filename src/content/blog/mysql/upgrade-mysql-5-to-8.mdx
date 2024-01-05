@@ -1,0 +1,114 @@
+---
+title: "Uprade mysql 5.7 to 8.0"
+description: "Errors while upgrade mysql from 5.7 to 8.0 either standalone or AWS RDS mysql"
+date: "Jan 5, 2024"
+---
+
+In order to uprade mysql 5.7 to 8.0, one can see the following errors:
+
+```
+3) Usage of utf8mb3 charset
+	The following objects use the utf8mb3 character set. It is recommended to convert them to use utf8mb4 instead, for improved Unicode support.
+	More Information:
+		https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
+
+mysql - schema's default character set: utf8
+xdb.Connections.ip - column's default character set: utf8
+xdb.Connections.query - column's default character set: utf8
+testdb.log.log_id - column's default character set: utf8
+testdb.log.user_id - column's default character set: utf8
+
+...
+...
+24) Creating indexes larger than 767 bytes on tables with redundant row format might cause the tables to be inaccessible.
+	You have one or more tables with redundant row format. Creating an index larger than 767 bytes might cause the table to be inaccessible (only 50 tables are shown).
+	More Information:
+		https://bugs.mysql.com/bug.php?id=99791
+
+[table_schema, table_name]
+xdb,Connections - Consider restoring the DB instance from a snapshot creating before upgrading, and change the row_format of the tables to dynamic.
+testdb,putdatatype - Consider restoring the DB instance from a snapshot creating before upgrading, and change the row_format of the tables to dynamic.
+testdb,urllog - Consider restoring the DB instance from a snapshot creating before upgrading, and change the row_format of the tables to dynamic.
+
+
+```
+
+If you see `mysql` db is also there to change the character set, ignore it because one might required admin or sudo permission to change the charater set of it, plus upgrade will work without changing the character set of `mysql` DB.
+
+For other DBs one have to change the character set. We are talking interms of AWS RDS, but it will work for standalone mysql instances too.
+
+The `row_format` no need to change to dynamic, as it won't impact the upgrade. (but there is a BUG related to it)
+
+There are certain change that need to be taken care of, while Upgrading on AWS RDS don't forget to check `PrePatchCompatibility.log` file if the upgrade fails. There will be logs for tables and database character set change required.
+
+Its better to upgrade the DEFAULT_CHARACTER_SET_NAME to `utf8mb4` with DEFAULT_COLLATION_NAME to `utf8mb4_general_ci` .
+
+For `testdb` the default values were:
+
+```sql
+SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'testdb';
+```
+
+```
++----------------------------+------------------------+
+| DEFAULT_CHARACTER_SET_NAME | DEFAULT_COLLATION_NAME |
++----------------------------+------------------------+
+| latin1                     | latin1_swedish_ci      |
++----------------------------+------------------------+
+```
+
+Below command will show the available character set on mysql:
+
+```sql
+SHOW CHARACTER SET;
+```
+
+To update the databae character set:
+
+```sql
+ALTER DATABASE testdb CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+SELECT DEFAULT_CHARACTER_SET_NAME, DEFAULT_COLLATION_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = 'testdb';
+```
+
+```
++----------------------------+------------------------+
+| DEFAULT_CHARACTER_SET_NAME | DEFAULT_COLLATION_NAME |
++----------------------------+------------------------+
+| utf8mb4                    | utf8mb4_general_ci     |
++----------------------------+------------------------+
+```
+
+For checking the character set of the table
+
+```sql
+SELECT CCSA.character_set_name  FROM information_schema.`TABLES` T,information_schema.`COLLATION_CHARACTER_SET_APPLICABILITY` CCSA WHERE CCSA.collation_name = T.table_collation AND T.table_schema = "testdb" AND T.table_name = "analytics_botanalyticslog";
+```
+
+and the columns.
+
+```sql
+SELECT character_set_name FROM information_schema.`COLUMNS` WHERE table_schema = "testdb" AND table_name = "analytics_botanalyticslog" AND column_name = "log_id";
+```
+
+For updating the character set of the table and the columns.
+
+```sql
+ALTER TABLE analytics_botanalyticslog CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```
+
+Conversion script for the tables: (CHARACTER SET)
+
+```sh
+#!/bin/bash
+echo "================"
+echo $DB_URL
+echo $DB_USER
+echo $DB_PASSWORD
+echo $DB_NAME
+echo "================"
+mysql -h $DB_URL -u $DB_USER -p"$DB_PASSWORD" -e "use $DB_NAME;show tables;" | awk '{print $1}' > tables.txt
+
+
+while read t ;do echo "--UPDATING--";echo "$t"; mysql -h $DB_URL -u $DB_USER -p"$DB_PASSWORD" -e "use $DB_NAME;ALTER TABLE $t CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;"; echo "--DONE--";sleep 1;done < tables.txt
+```
