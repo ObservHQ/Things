@@ -55,20 +55,6 @@ else href = "/"
 
     <!-- link tags -->
     <link rel="sitemap" href="/sitemap-index.xml">
-    <link
-      rel="preload"
-      href="/fonts/Switzer.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin="anonymous"
-    />
-    <link
-      rel="preload"
-      href="/fonts/Hack.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin="anonymous"
-    />
   </head>
 
   <body>
@@ -122,34 +108,6 @@ loglib.record({
 </script>
 
 <style is:global>
-@font-face {
-  font-family: "Switzer";
-  src: url("/fonts/Switzer.woff2") format("woff2");
-  font-weight: 300 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Switzer Fallback";
-  src: local("BlinkMacSystemFont"), local("Segoe UI"), local("Helvetica Neue"),
-    local("Arial"), local("sans-serif");
-  font-weight: 300 900;
-  font-style: normal;
-  ascent-override: 96.67%;
-  descent-override: 24.66%;
-  line-gap-override: 8.88%;
-  size-adjust: 101.38%;
-}
-
-@font-face {
-  font-family: "Hack";
-  src: url("/fonts/Hack.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-  font-style: normal;
-}
-
 body,
 html {
   @apply overflow-x-hidden;
@@ -169,12 +127,30 @@ html {
 }
 
 body {
-  font-family: "Switzer", "Switzer Fallback";
   @apply text-neutral-300 bg-neutral-900 px-0 md:px-4 py-4 md:py-8 relative min-h-screen text-sm md:text-base;
 }
 
 code, pre {
-  font-family: "Hack", 'Courier New', Courier, monospace
+  font-size: 0.875rem !important;
+  line-height: 1.25rem;
+}
+
+code {
+  @apply [letter-spacing:-0.02em] rounded text-sm after:(font-black text-gray-600) before:(font-black text-gray-600);
+}
+
+code::before,
+code::after {
+    content: "`";
+}
+
+pre {
+    --at-apply: "[tab-size:2] overflow-x-auto rounded p-4 text-sm [&code]:(text-base after:content-none before:content-none) [letter-spacing:unset]";
+}
+
+pre code::before,
+pre code::after {
+    content: none;
 }
 
 .prose {

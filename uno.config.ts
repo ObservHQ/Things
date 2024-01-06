@@ -13,10 +13,6 @@ export default defineConfig({
     colors: {
       "neutral-850": "#1f1f1f",
     },
-    fontFamily: {
-      sans: "Switzer",
-      mono: "Hack",
-    },
     maxWidth: {
       container: "43rem",
     },
