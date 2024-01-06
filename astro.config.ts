@@ -7,7 +7,7 @@ import { defineConfig } from "astro/config";
 import unocss from "unocss/astro";
 
 export default defineConfig({
-  site: "https://www.observhq.com",
+  site: "https://observhq.vercel.app",
   adapter: vercel(),
   output: "hybrid",
   integrations: [
