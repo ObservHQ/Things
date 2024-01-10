@@ -17,7 +17,7 @@ However, the organizations using Ghost and Amazon RDS need to update the CA befo
 Here is an example of it:
 Dockerfile
 
-```md
+```dockerfile
 ARG GHOSTX_VERSION=5.75.3
 FROM ghost:$GHOSTX_VERSION-alpine
 ARG GHOSTX_VERSION
@@ -35,7 +35,7 @@ COPY ssl_profiles.js /var/lib/ghost/versions/$GHOSTX_VERSION/node_modules/mysql2
 
 Inside `ssl_profile.js` one can provide multiple CAs or CAs for particular AWS regions:
 
-```md
+```js
 "use strict";
 // for fixing CA mysql2 issue for AMAZON RDS
 // https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
@@ -95,11 +95,11 @@ ca: [
 };
 ```
 
-One can download region-wise CAs from https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html#UsingWithRDS.SSL.RegionCertificates .
+One can download region-wise CAs from [https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html#UsingWithRDS.SSL.RegionCertificates](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html#UsingWithRDS.SSL.RegionCertificates).
 
 For checking what's there in the CA pem file:
 
-```md
+```sh
 keytool -printcert -v -file custom-ca.pem
 ```
 
@@ -107,7 +107,7 @@ keytool -printcert -v -file custom-ca.pem
 
    Example:
 
-```md
+```yaml
 volumeMounts:
 
 - name: configuration-files
@@ -124,7 +124,7 @@ volumeMounts:
 
    Rather than providing `"ssl":"Amazon RDS"`, one can provide the ca inside ssl like:
 
-```md
+```json
 "database": {
 "client": "mysql",
 "connection": {
@@ -141,6 +141,6 @@ volumeMounts:
 
 Remember CA value in configurations has to be a one-line string. user can convert it using:
 
-```
+```sh
 awk '{printf "%s\\n", $0}' custom-ca.pem
 ```
