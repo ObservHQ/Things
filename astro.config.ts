@@ -20,5 +20,5 @@ export default defineConfig({
   server: {
     port: 6969,
   },
-  markdown: { shikiConfig: { theme: "vitesse-dark", wrap: true } },
+  markdown: { shikiConfig: { theme: "vitesse-dark" } },
 });

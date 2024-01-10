@@ -141,11 +141,11 @@ code {
 
 code::before,
 code::after {
-    content: "`";
+  content: "`";
 }
 
 pre {
-    --at-apply: "[tab-size:2] overflow-x-auto rounded p-4 text-sm [&code]:(text-base after:content-none before:content-none) [letter-spacing:unset]";
+  --at-apply: "[tab-size:2] overflow-x-auto rounded p-4 text-sm [&code]:(text-base after:content-none before:content-none) [letter-spacing:unset]";
 }
 
 pre code::before,
@@ -154,10 +154,14 @@ pre code::after {
 }
 
 .prose {
-  @apply max-w-container [&>:not(:last-child)]:mb-6;
+  @apply max-w-container [&>:not(:last-child)]:mb-6 break-words;
 
   & p {
     @apply my-6 line-height-7.2
+  }
+
+  & a {
+    @apply underline decoration-neutral-600 underline-offset-4 transition-colors focus:(decoration-neutral-500 outline-offset-6) hover:decoration-neutral-500;
   }
 
   & h1,
@@ -188,6 +192,10 @@ pre code::after {
 
   & ul {
     @apply list-disc list-outside pl-4;
+  }
+
+  & ol {
+    @apply list-decimal list-outside;
   }
 
   & ul > li {
