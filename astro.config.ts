@@ -8,7 +8,11 @@ import unocss from "unocss/astro";
 
 export default defineConfig({
   site: "https://observhq.vercel.app",
-  adapter: vercel(),
+  adapter: vercel({
+    webAnalytics: {
+      enabled: true,
+    },
+  }),
   output: "hybrid",
   integrations: [
     mdx(),
