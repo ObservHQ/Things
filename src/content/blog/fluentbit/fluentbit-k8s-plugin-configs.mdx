@@ -4,7 +4,7 @@ description: "How to configure k8s filter plugin in fluentbit properly, to add e
 date: "May 16, 2024"
 ---
 
-K8s filter plugin is used to add extra information on log while tailing the container logs using fluenbit. In fluentbit version 3, there are certain things to take care.
+K8s filter plugin is used to add extra information in log while tailing the container logs using fluenbit. In fluentbit version 3, there are certain things to consider.
 
 Here is an example for conf for fluentbit in k8s.
 ```
@@ -33,19 +33,20 @@ fluent-bit.conf: |
         Kubelet_Port        10250
 ```
 
-In the order example to work make sure folder Path `/var/log/containers` is similar to Kube_Tag_Prefix `var.log.containers`.
+For example to work make sure folder Path `/var/log/containers` is similar to Kube_Tag_Prefix `var.log.containers`.
 
-Tag `hox.ingress-nginx-controller.*` in INPUT and Kube_Tag_Prefix `hox.ingress-nginx-controller.var.log.containers.` [in FILTER], with Path `/var/log/containers`, makes the fluentbit extract relevant fields to make call on kube api server.
+Tag `hox.ingress-nginx-controller.*` in INPUT and Kube_Tag_Prefix `hox.ingress-nginx-controller.var.log.containers.` [in FILTER], with Path `/var/log/containers`, makes the fluentbit extract relevant fields to make api calls on k8s api-server.
 
-If someone want to change the relevant fields, please make sure to change the fields accordingly.
+If someone wants to change the relevant fields, please make sure to change the fields accordingly.
 
 Example:
 If Path /etc/log/hoxserver/hoxserver-*.log
 then Tag will be nox.hoxserver.*
 and Kube_Tag_Prefix will be nox.hoxserver.etc.log.hoxserver.
 
-fluentbit uses regex to extract information about `namespace`, `pod_name`, `container_name` etc for parser similar to below:
+fluentbit uses regex to extract information about `namespace`, `pod_name`, `container_name` etc for parsing, similar to below:
 
+[Example]:
 ```
 [PARSER]
     Name kubernetes_container_logs_metadata
