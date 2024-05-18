@@ -1,0 +1,28 @@
+---
+title: "Decode Hex decimal number in string using lua"
+description: "How to decode hex decimal number present in string using lua."
+date: "May 18, 2024"
+---
+
+There are certain senarios in which hexdecimal number will be string in the string, and we will get decode error while decoding the string.
+
+Here is an example how to replace or decode hex decimal number in lua.
+
+```
+function hexToAscii(str)
+    return (str:gsub('..', function (cc)
+        if tonumber(cc) then
+          return string.char(tonumber(cc, 16))
+        end
+        return cc
+    end))
+end
+
+a = "asdssdkfsdl\x22ksldflog\x22ksldf\x5Cskdf"
+b = hexToAscii(a)
+print (b)
+```
+
+In the above example we are take two char in the function, and using tonumber with base 16 to convert back to ascii.
+
+This kind of example are can be used in fluentbit log parsing.
