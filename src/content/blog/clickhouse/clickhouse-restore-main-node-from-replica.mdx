@@ -1,0 +1,65 @@
+---
+title: "How to Restore Data from a ClickHouse Replica to the Main Node (on Node or Kubernetes)"
+description: "Learn the steps to restore data from a ClickHouse replica node to the primary node, whether you're running ClickHouse on a physical server (node) or within a Kubernetes (K8s) cluster. This guide covers recovery methods in case of failures or accidental data loss on the main node.?"
+date: "May 06, 2025"
+---
+
+If, for any reason, someone finds themselves in a situation where the primary ClickHouse node’s EBS or SSD is not recovering and no snapshots are available, or if a PVC and PV for the primary ClickHouse node in Kubernetes were accidentally deleted, ...
+
+Here are the steps to recover data on main node:
+
+Steps to Copy a Database 
+
+- Ensure Replication Setup:
+
+If the tables in the database use ReplicatedMergeTree or its variants (e.g., ReplicatedSummingMergeTree), ClickHouse replication will automatically sync the data from the replica to the main node when the main node is properly configured and connected to the same Zookeeper or ClickHouse Keeper cluster.
+
+- Create the Database on the Main Node:
+
+If the database does not already exist on the main node, create it using:
+
+```
+CREATE DATABASE <database_name>;
+Recreate Table Definitions:
+```
+
+Copy table definitions from the replica node. The metadata files for tables are located in `/var/lib/clickhouse/metadata/<database_name>/` on the replica.
+
+Transfer these .sql files to the same directory on the main node and ensure proper permissions:
+
+```
+chown clickhouse:clickhouse <table>.sql
+chmod 0640 <table>.sql
+```
+
+- Force Data Restoration:
+
+If data exists on the replica but not on the main node, force ClickHouse to restore missing parts by adding a flag:
+
+```
+sudo -u clickhouse touch /var/lib/clickhouse/flags/force_restore_data
+```
+
+Restart ClickHouse after setting this flag:
+
+```
+service clickhouse-server restart
+```
+
+- Verify Replication:
+
+Check that replication is functioning correctly by querying `system.replication_queue` on both nodes. Resolve any errors if present.
+
+- Manual Data Copy (if Needed):
+
+For non-replicated tables or if replication fails, manually copy data files from /var/lib/clickhouse/data/<database_name>/<table_name>/ on the replica to the same location on the main node.
+
+Restart ClickHouse after copying data files.
+
+Notes
+
+Ensure that both nodes are part of the same Zookeeper or ClickHouse Keeper cluster for proper synchronization.
+
+Use `force_restore_data` cautiously, as it can overwrite certain configurations.
+
+This process ensures that data is copied and synchronized between nodes effectively.
