@@ -1,0 +1,191 @@
+---
+title: "Customizing Error pages in ingress controller"
+description: "Do you know, you can customize ingress controller error pages with using default service ?"
+date: "Apr 10, 2025"
+---
+
+To customize error pages on ingres-nginx-controller without using default service.
+
+Use this command to the the respective template.
+
+```
+docker pull --platform linux/amd64 registry.k8s.io/ingress-nginx/controller:v1.10.0@sha256:42b3f0e5d0846876b1791cd3afeb5f1cbbe4259d6f35651dcc1b5c980925379c
+
+docker run -it registry.k8s.io/ingress-nginx/controller:v1.10.0@sha256:42b3f0e5d0846876b1791cd3afeb5f1cbbe4259d6f35651dcc1b5c980925379c /bin/sh
+/etc/nginx $ 
+/etc/nginx $ ls
+fastcgi.conf            koi-utf                 mime.types.default      nginx.conf.default      scgi_params.default     win-utf
+fastcgi.conf.default    koi-win                 modsecurity             opentracing.json        template
+fastcgi_params          lua                     modules                 owasp-modsecurity-crs   uwsgi_params
+fastcgi_params.default  mime.types              nginx.conf              scgi_params             uwsgi_params.default
+/etc/nginx $ cd template/
+/etc/nginx/template $ ls
+nginx.tmpl
+```
+
+COPY the nginx.tmpl and modify accordingly and mount it on the deployment.
+
+Places to modify the `nginx.tmpl`.
+Example for 403.html in `nginx.tmpl`
+
+```
+    {{/* Build server redirects (from/to www) */}}
+    {{ range $redirect := .RedirectServers }}
+    ## start server {{ $redirect.From }}
+    server {
+        server_name {{ $redirect.From }};
+
+        {{ buildHTTPListener  $all $redirect.From }}
+        {{ buildHTTPSListener $all $redirect.From }}
+
+        ssl_certificate_by_lua_block {
+            certificate.call()
+        }
+        error_page 403 /403.html;
+        {{ if gt (len $cfg.BlockUserAgents) 0 }}
+        if ($block_ua) {
+           return 403;
+        }
+        {{ end }}
+        {{ if gt (len $cfg.BlockReferers) 0 }}
+        if ($block_ref) {
+           return 403;
+        }
+        location = /403.html {
+            internal;
+        }
+        {{ end }}
+```
+
+Example for 404.html and 50x.html.
+```
+    # backend for when default-backend-service is not configured or it does not have endpoints
+    server {
+        listen {{ $all.ListenPorts.Default }} default_server {{ if $all.Cfg.ReusePort }}reuseport{{ end }} backlog={{ $all.BacklogSize }};
+        {{ if $IsIPV6Enabled }}listen [::]:{{ $all.ListenPorts.Default }} default_server {{ if $all.Cfg.ReusePort }}reuseport{{ end }} backlog={{ $all.BacklogSize }};{{ end }}
+        set $proxy_upstream_name "internal";
+
+        access_log off;
+
+        error_page 404 /404.html;
+        error_page 500 502 503 504 /50x.html;
+
+        location / {
+            return 404;
+        }
+        location = /404.html {
+            internal;
+        }
+        location = /50x.html {
+            internal;
+        }
+    }
+```
+
+
+Example for `volumeMounts` on deployment for pod deployment:
+
+```yaml
+        volumeMounts:
+            - name: webhook-cert
+              mountPath: /usr/local/certificates/
+              readOnly: true
+            - name: custom-errors
+              mountPath: /usr/local/nginx/html/
+              readOnly: true
+            - name: nginx-ingress-template-volume
+              mountPath: /etc/nginx/template
+              readOnly: true
+    volumes:
+        - name: webhook-cert
+          secret:
+            secretName: ingress-nginx-admission
+        - name: custom-errors
+          configMap:
+            # Provide the name of the ConfigMap you want to mount.
+            name: custom-ingress-pages
+            items:
+            - key: "404.html"
+              path: "404.html"
+            - key: "403.html"
+              path: "403.html"
+```
+
+Example: someone can also configure on server-snippet for all the running ingress.
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+    enable-brotli: "true"
+    server-snippet: |
+        listen 8000;
+        if ( $server_port = 80 ) {
+        return 301 https://$host$request_uri;
+        }
+        if ( $host !~ ((.*.example.com$)|(www.example.com$)|(example.com$)) ){
+        return 404 https://$host$request_uri;
+        }
+        if ( $http_host !~ ((.*.example.com$)|(www.example.com$)|(example.com$)|(example.com:443$)|(.*.example.com:443$)|(www.example.com:443$)) ){
+        return 404 https://$host$request_uri;
+        }
+        error_page 429 /429.html;
+        location = /429.html {
+            internal;
+        }
+        error_page 404 /404.html;
+        error_page 403 /403.html;
+        error_page 500 502 503 504 /50x.html;
+        location = /404.html {
+            internal;
+        }
+        location = /50x.html {
+            internal;
+        }
+        location = /403.html {
+            internal;
+        }
+```
+
+Exmaple if someone wants to use at ingress level.
+
+```
+# example-ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  namespace: example
+  annotations:
+    nginx.ingress.kubernetes.io/server-snippet: |
+      set $redirect 0;
+      if ($host != "example.example.com") {
+        set $redirect 1;
+      }
+      if ($redirect = 1) {
+        return 404;
+      }
+      error_page 503 /50x.html;
+      error_page 502 /50x.html;
+      error_page 404 /404.html;
+      server_tokens off;
+spec:
+  ingressClassName: nginx
+  rules:
+  # example.example.com
+  - host: example.example.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80
+```
+
+If you are server-snippet and is not allowed , try running the ingress-controller with `annotations-risk-level: "Critical"` in `ingress-nginx-controller` configmap.
