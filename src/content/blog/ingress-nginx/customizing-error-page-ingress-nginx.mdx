@@ -113,7 +113,7 @@ Example for `volumeMounts` on deployment for pod deployment:
 
 Example: someone can also configure on server-snippet for all the running ingress.
 
-```
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -152,7 +152,7 @@ data:
 
 Exmaple if someone wants to use at ingress level.
 
-```
+```yaml
 # example-ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -188,4 +188,4 @@ spec:
               number: 80
 ```
 
-If you are server-snippet and is not allowed , try running the ingress-controller with `annotations-risk-level: "Critical"` in `ingress-nginx-controller` configmap.
+If you are using server-snippet and it is not allowed , try running the ingress-controller with `annotations-risk-level: "Critical"` in `ingress-nginx-controller` configmap.
